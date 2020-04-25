@@ -7,9 +7,9 @@ llama a la funcion de callback con cada linea del archivo.*/
 typedef void (*callback_t)(char*,void*);
 
 typedef struct file_streamer{
-    FILE* archivo;
+    FILE* file;
     callback_t callback;
-    char separador;
+    char separator;
 } file_streamer_t;
 
 /*Crea un file streamer. Recibe un puntero a file_streamer_t en el cual sera inicializado el streamer,
