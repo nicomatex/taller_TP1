@@ -17,7 +17,6 @@
 #include <unistd.h>
 
 //Includes de modulos del programa
-#include "command_parser.h"
 #include "network_util.h"
 
 bool check_parameters(int argc){
@@ -65,20 +64,5 @@ int main(int argc, char *argv[]){
     char* buffer = NULL;
     size_t read_bytes = 0;
 
-    
-
-    /* 
-    command_t command;
-    while(getline(&current_line,&read_bytes,stdin) > 0){
-        memset(&command,0, sizeof(command_t));
-        if(!parse_command(&command,current_line)){
-            printf("Error en un comando.\n");
-        }else{  
-            printf("destination: %s, path: %s, interface: %s, method:%s, parameters:%s\n",command.destination,
-            command.path,command.interface,command.method,command.parameters);
-        }
-        free(current_line);
-        free_command_buffer(&command);
-    }*/
     return 0;
 }

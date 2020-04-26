@@ -1,3 +1,2 @@
-linea muy larga for the HORDEEEEEEEEEEE AGUANTE GARROSH PERRO ESKERE
-Eta es otra linea
-Y esta es otra lineaoksy
+taller.server /tp1/server com.taller.tp1 saludar(juanin,juan,harry)
+nico.server /nico/server com.nico.tp1 cocinarpizza(tengo,hambre)

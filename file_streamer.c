@@ -18,7 +18,7 @@ void file_streamer_create(file_streamer_t* file_streamer,FILE* archivo,callback_
     file_streamer->separator = separador;
 }
 
-char* resize_buffer(char* old_buffer,size_t old_size){
+char* resize_buffer(char* old_buffer,size_t old_size){ /*Es una especie de realloc, pero no confio en realloc.*/
     char* new_buffer = malloc(BUF_SCALE_FACTOR*old_size);
     if(!new_buffer){
         free(old_buffer);
@@ -40,9 +40,9 @@ int file_streamer_run(file_streamer_t* file_streamer,void* context){
     size_t file_buffer_ptr = FILE_BUFFER_SIZE -1; //Se inicializa asi para que se haga la primera lectura.
 
     while(!feof(file_streamer->file)){
-        fread(file_buffer,FILE_BUFFER_SIZE,1,file_streamer->file);
+        size_t bytes_read = fread(file_buffer,1,FILE_BUFFER_SIZE,file_streamer->file);
         size_t i = 0;
-        for(i = 0;i < FILE_BUFFER_SIZE;i++){ //Se recorre todo el buffer
+        for(i = 0;i < bytes_read;i++){ //Se recorre todo el buffer
             line_buffer[current_line_size] = file_buffer[i]; //Se pasa cada byte al buffer de linea
             current_line_size++;
 
