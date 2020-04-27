@@ -34,6 +34,8 @@
 
 #define MAX_SIGNATURE_PARAMS 20
 
+#define SIGN_PARAM_SEP ','
+
 enum param{DEST, PATH, INTERFACE, METHOD, SIGNATURE_PARAMS};
 
 static size_t add_padding(size_t size){
@@ -47,7 +49,7 @@ static size_t calculate_header_size(command_t* command){
     size_t header_size = BASE_HEADER_SIZE + 8*BASE_PARAM_COUNT;
 
     string_size = strlen(command->destination) + EOS;
-    header_size += string_size + add_padding(string_size); /*Le sumo lo que le falta para ser multiplo de 8*/
+    header_size += string_size + add_padding(string_size); 
 
     string_size = strlen(command->path) + EOS;
     header_size += string_size + add_padding(string_size);
@@ -68,8 +70,16 @@ static size_t calculate_header_size(command_t* command){
     return header_size;
 }
 
+uint32_t calculate_body_size(command_t* command){
+    size_t body_size = 0;
+    body_size += sizeof(uint32_t) * command->signature_param_count; //Para los enteros de longitud
+    body_size += command->signature_param_count; //Para los \0 del final de cada cadena
+    body_size += (strlen(command->signature_parameters) - command->signature_param_count + 1); // Para no contar las comas
+    return (uint32_t)body_size;
+}
+
 /*Devuelve la cantidad de bytes que escribio en el header*/
-static size_t add_parameter_info(char* header,char* value,enum param parameter,size_t position){
+static size_t add_parameter_info(unsigned char* header,char* value,enum param parameter,size_t position){
     size_t start_position = position;
     uint32_t param_size = (uint32_t)strlen(value);
     char type = 0;
@@ -127,7 +137,8 @@ unsigned char* generate_header(command_t* command, uint32_t serial_number, size_
     header[POS_FLAGS] = FLAGS;
     header[POS_PROTOCOL_VER] = PROTOCOL_VER;
 
-    uint32_t body_size = 8; /*TODO: cambiar esto cuando implemente la generacion del body*/
+    uint32_t body_size = 0;
+    if(command->signature_param_count > 0) body_size = calculate_body_size(command);
     memcpy(&header[POS_BODY_SIZE],&body_size,sizeof(uint32_t));
     memcpy(&header[POS_SERIAL_NUMBER],&serial_number,sizeof(uint32_t));
 
@@ -148,4 +159,28 @@ unsigned char* generate_header(command_t* command, uint32_t serial_number, size_
     }
     printf("termine escribiendo %ld\n",position);
     return header;
+}
+
+unsigned char* generate_body(command_t* command,size_t* body_size){
+    *body_size = calculate_body_size(command);
+    unsigned char* body = malloc(*body_size);
+    size_t params_index = 0;
+    size_t body_index = sizeof(uint32_t);
+
+    uint32_t current_param_lenght = 0;
+    while(command->signature_parameters[params_index] != '\0'){
+        body[body_index++] = command->signature_parameters[params_index++];
+        current_param_lenght++;
+
+        char current_char = command->signature_parameters[params_index];
+        if(current_char == SIGN_PARAM_SEP || current_char == '\0'){
+            memcpy(&body[body_index-current_param_lenght-sizeof(uint32_t)],&current_param_lenght,sizeof(uint32_t));
+            current_param_lenght = 0;
+            body[body_index++] = '\0';
+            body_index += sizeof(uint32_t);
+            if(current_char == '\0') break;
+            params_index++;
+        }
+    }
+    return body;
 }

@@ -37,7 +37,6 @@ int file_streamer_run(file_streamer_t* file_streamer,void* context){
 
     size_t line_buffer_size = LINE_BUFFER_INITIAL_SIZE;
     size_t current_line_size = 0;
-    size_t file_buffer_ptr = FILE_BUFFER_SIZE -1; //Se inicializa asi para que se haga la primera lectura.
 
     while(!feof(file_streamer->file)){
         size_t bytes_read = fread(file_buffer,1,FILE_BUFFER_SIZE,file_streamer->file);

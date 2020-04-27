@@ -47,7 +47,7 @@ bool connect_to_available_server(int* skt, struct addrinfo* results){
 
 int send_message(int skt, char *output_buffer, size_t size) {
    size_t sent = 0;
-   int bytes_sent = 0;
+   size_t bytes_sent = 0;
    bool valid_socket = true;
 
    while (sent < size && valid_socket) {
@@ -65,7 +65,7 @@ int send_message(int skt, char *output_buffer, size_t size) {
    }
 
    if (valid_socket) {
-      return sent;
+      return (int)sent;
    }
    else {
       return -1;
