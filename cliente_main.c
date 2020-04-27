@@ -2,6 +2,9 @@
 
 #define ARG_HOST 1 
 #define ARG_PORT 2
+#define ARG_FILE 3
+
+#define CHAR_NEWLINE '\n'
 
 //Includes generales
 #include <stdio.h>
@@ -17,52 +20,70 @@
 #include <unistd.h>
 
 //Includes de modulos del programa
-#include "network_util.h"
+#include "client.h"
+#include "file_streamer.h"
+#include "command_parser.h"
+#include "command_serializator.h"
 
-bool check_parameters(int argc){
-    if (argc != 3 || argc != 4){
+#define MIN_ARGS 3
+#define MAX_ARGS 4
+
+bool check_parameters(int argc){ /*Chequeo de cantidad de parametros*/
+    if(argc < MIN_ARGS){
+        fprintf(stderr,"Parametros insuficientes.");
+        return false;
+    }else if(argc > MAX_ARGS){
+        fprintf(stderr,"Demasiados parametros.");
         return false;
     }
     return true;
 }
 
+void parse_and_send(char* line,void* client){
+    client = (client_t*)client;
+    command_t command;
+    command_create(&command);
+
+    if(!command_parse(line,&command)){
+        fprintf(stderr,"Comando no valido\n");
+        return;
+    }
+
+    size_t msg_size;
+    unsigned char* message = generate_dbus_message(&command,8,&msg_size);\
+    printf("DEBUG: message size: %ld\n",msg_size);
+
+    size_t bytes_sent = client_send_msg(client,message,msg_size);
+    printf("DEBUG: bytes sent: %ld\n",bytes_sent);
+
+    free(message);
+    command_destroy(&command);
+}
+
 int main(int argc, char *argv[]){
-    
-    //if (!check_parameters(argc)) fprintf(stderr,"Error en la cantidad de parametros ingresada.\n");
-
-    char* current_line = NULL;
-    struct addrinfo* results;
-
-    if(!get_info_from_dns(argv[ARG_HOST],argv[ARG_PORT], &results, false)){
-        fprintf(stderr,"No se pudo obtener la informacion del servidor DNS.\n");
-        return -1;
+    if(!check_parameters(argc)) return -1;
+    FILE* file = stdin;
+    if(argc == MAX_ARGS){
+        file = fopen(argv[ARG_FILE],"r");
     }
-    printf("Obtenida informacion DNS.\n");
 
-    int skt;
+    /*Establecimiento de conexion*/
+    client_t client;
+    client_create(&client,argv[ARG_HOST],argv[ARG_PORT]);
 
-    if(!connect_to_available_server(&skt,results)){
-        fprintf(stderr,"No se pudo conectar al servidor.\n");
-        free(results);
+    if(client_connect(&client) < 0){
         return -1;
     }
 
-    free(results);
-    printf("Conectado al servidor.\n");
-
-    char* mensaje_prueba = "FOR THE HORDE!!!\n";
-    size_t bytes_sent = send_message(skt,mensaje_prueba,strlen(mensaje_prueba));
-
-    if(bytes_sent == -1){
-        fprintf(stderr,"Hubo un problema enviando el mensaje.\n");
-    }else{
-        printf("%ld bytes enviados con exito!\n",bytes_sent);
+    file_streamer_t file_streamer;
+    file_streamer_create(&file_streamer,file,parse_and_send,CHAR_NEWLINE);
+    if(file_streamer_run(&file_streamer,&client) < 0){
+        fprintf(stderr,"Error de lectura");
     }
-    shutdown(skt,SHUT_RDWR);
-    close(skt);
-    
-    char* buffer = NULL;
-    size_t read_bytes = 0;
+    file_streamer_destroy(&file_streamer);
 
+    client_disconnect(&client);
+    client_destroy(&client);
+    if(file != stdin) fclose(file);
     return 0;
 }

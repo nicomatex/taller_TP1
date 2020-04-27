@@ -45,7 +45,7 @@ bool connect_to_available_server(int* skt, struct addrinfo* results){
     return is_connected;
 }
 
-int send_message(int skt, char *output_buffer, size_t size) {
+int send_message(int skt,unsigned char *output_buffer, size_t size) {
    size_t sent = 0;
    size_t bytes_sent = 0;
    bool valid_socket = true;
@@ -53,13 +53,9 @@ int send_message(int skt, char *output_buffer, size_t size) {
    while (sent < size && valid_socket) {
       bytes_sent = send(skt, &output_buffer[sent], size-sent, MSG_NOSIGNAL);
 
-      if (bytes_sent == 0) {
+      if (bytes_sent == 0 || bytes_sent == -1) {
          valid_socket = false;
-      }
-      else if (bytes_sent == -1) {
-         valid_socket = false;
-      }
-      else {
+      } else {
          sent += bytes_sent;
       }
    }
@@ -68,6 +64,7 @@ int send_message(int skt, char *output_buffer, size_t size) {
       return (int)sent;
    }
    else {
+       fprintf(stderr,"Hubo un error enviando el mensaje");
       return -1;
    }
 }

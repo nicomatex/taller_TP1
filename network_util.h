@@ -1,3 +1,5 @@
+#ifndef NETWORK_UTIL_H
+#define NETWORK_UTIL_H
 #define _POSIX_C_SOURCE 200809L
 
 #include <sys/types.h>
@@ -23,4 +25,5 @@ bool connect_to_available_server(int* skt, struct addrinfo* results);
 /*Recibe un socket en estado CONNECTED skt, un buffer de salida output_buffer, y una cantidad
 de bytes size. Intenta enviar a traves de skt  size bytes de output_buffer. Devuelve 
 la cantidad de bytes enviados en caso exitoso, y -1 en caso de error.*/
-int send_message(int skt, char *output_buffer, size_t size);
+int send_message(int skt,unsigned char *output_buffer, size_t size);
+#endif

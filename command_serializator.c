@@ -125,7 +125,7 @@ static size_t add_parameter_info(unsigned char* header,char* value,enum param pa
     return position - start_position;
 }
 
-unsigned char* generate_header(command_t* command, uint32_t serial_number, size_t* header_size){
+static unsigned char* generate_header(command_t* command, uint32_t serial_number, size_t* header_size){
     /*TODO: Pasar los uint32_t a little endian*/
     *header_size = calculate_header_size(command);
     unsigned char* header = malloc(*header_size);
@@ -161,7 +161,7 @@ unsigned char* generate_header(command_t* command, uint32_t serial_number, size_
     return header;
 }
 
-unsigned char* generate_body(command_t* command,size_t* body_size){
+static unsigned char* generate_body(command_t* command,size_t* body_size){
     *body_size = calculate_body_size(command);
     unsigned char* body = malloc(*body_size);
     size_t params_index = 0;
@@ -183,4 +183,26 @@ unsigned char* generate_body(command_t* command,size_t* body_size){
         }
     }
     return body;
+}
+
+unsigned char* generate_dbus_message(command_t* command, uint32_t serial_number,size_t* msg_size){
+    size_t body_size = 0;
+    size_t header_size = 0;
+    unsigned char* header = generate_header(command,serial_number,&header_size);
+    *msg_size = header_size;
+
+    if(command->signature_param_count == 0){
+        return header;
+    }
+    unsigned char* body = generate_body(command,&body_size);
+    *msg_size+= body_size;
+    size_t message_size = body_size + header_size;
+
+    unsigned char* message = malloc(message_size*sizeof(char));
+    
+    memcpy(&message[0],&header[0],header_size);
+    memcpy(&message[header_size],&body[0],body_size);
+    free(header);
+    free(body);
+    return message;
 }
