@@ -258,7 +258,6 @@ void decode_body(unsigned char* message, command_t* command, size_t position, ui
 void decode_dbus_message(unsigned char* message, command_t* command){
     size_t position = READ_START;
     uint32_t body_size = decode_int(message,&position);
-    printf("DEBUG: El largo del cuerpo es %d\n",body_size);
     command->msg_id = decode_int(message,&position);
     uint32_t array_size = decode_int(message,&position);
     

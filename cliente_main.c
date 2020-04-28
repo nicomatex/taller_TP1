@@ -17,12 +17,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdbool.h>
-
-//Includes de Sockets
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
+#include <stdint.h>
 
 //Includes de modulos del programa
 #include "client.h"
@@ -30,8 +25,8 @@
 #include "command_parser.h"
 #include "command_serializator.h"
 
-
-bool check_parameters(int argc){ /*Chequeo de cantidad de parametros*/
+/*Chequeo de cantidad de parametros*/
+bool check_parameters(int argc){ 
     if(argc < MIN_ARGS){
         fprintf(stderr,"Parametros insuficientes.");
         return false;
@@ -57,16 +52,23 @@ void parse_and_send(char* line,void* context){
     size_t msg_size;
     
     unsigned char* message = generate_dbus_message(&command,&msg_size);
-    
-    printf("DEBUG: message size: %ld\n",msg_size);
 
     size_t bytes_sent = client_send_msg(client,message,msg_size);
-    printf("DEBUG: bytes sent: %ld\n",bytes_sent);
+
+    if(bytes_sent == 0){
+        free(message);
+        command_destroy(&command);
+        fprintf(stderr,"Conexion cerrada desde el servidor");
+    }
 
     unsigned char response_buffer[RESPONSE_SIZE+1];
     size_t bytes_recieved = client_recv_msg(client,&response_buffer[0],RESPONSE_SIZE);
-    
-    printf("DEBUG: bytes recieved: %ld.\n",bytes_recieved);
+
+    if(bytes_recieved == 0){
+        free(message);
+        command_destroy(&command);
+        fprintf(stderr,"Conexion cerrada desde el servidor");
+    }
 
     response_buffer[RESPONSE_SIZE] = '\0';
     printf("0x%.4x: %s",client->current_msg_id,response_buffer);

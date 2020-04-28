@@ -12,4 +12,5 @@ unsigned char* generate_dbus_message(command_t* command,size_t* msg_size);
 /*Recibe un mensaje codificado de DBUS, y almacena el resultado de la decodificacion del mismo en 
 el command pasado por parametro.*/
 void decode_dbus_message(unsigned char* message, command_t* command);
+
 #endif

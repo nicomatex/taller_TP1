@@ -31,4 +31,8 @@ int send_message(int skt,unsigned char *output_buffer, size_t size);
 size de bytes a leer. Intenta leer del servidor. Devuelve la cantidad de bytes recibidos
 en caso exitoso, y -1 en caso de error.*/
 int recieve_message(int skt,unsigned char* buffer,size_t recieve_size);
+
+/*Recibe un socket y un struct addrinfo con informacion DNS. Establece el socket en modo
+pasivo, escuchando en el puerto indicado en results.*/
+bool start_listening(int* skt,struct addrinfo* results);
 #endif

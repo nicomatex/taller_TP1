@@ -5,8 +5,8 @@ VFLAGS = --leak-check=full --track-origins=yes --show-reachable=yes
 CCLIENT = cliente_main.c
 CSERVER = server_main.c
 CTEST = test.c
-CTDA = command_parser.c command_serializator.c file_streamer.c network_util.c client.c
-HTDA = command_parser.h command_serializator.h file_streamer.h network_util.h client.h
+CTDA = command_parser.c command_serializator.c file_streamer.c network_util.c client.c server.c
+HTDA = command_parser.h command_serializator.h file_streamer.h network_util.h client.h server.h
 EXEC_TEST = pruebas
 EXEC_SERVER = server
 EXEC_CLIENT = cliente
@@ -29,6 +29,15 @@ client_run: client_build
 
 client_valgrind: client_build
 	valgrind $(VFLAGS) ./$(EXEC_CLIENT)
+
+server_build: $(CTDA)
+	$(CC) $(CFLAGS) -o $(EXEC_SERVER) $(CSERVER) $(CTDA)
+
+server_run: server_build
+	./$(EXEC_SERVER)
+
+server_valgrind: server_build
+	valgrind $(VFLAGS) ./$(SERVER_CLIENT)
 
 clean:
 	rm -f *.o $(EXEC_S)
