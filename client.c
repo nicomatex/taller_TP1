@@ -16,7 +16,7 @@ void client_create(client_t* client,char* host,char* port){
     client->host = host;
     client->port = port;
     client->skt = 0;
-    client->current_msg_id = 0;
+    client->current_msg_id = 1;
 }
 
 int client_connect(client_t* client){
