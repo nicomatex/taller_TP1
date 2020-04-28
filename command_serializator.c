@@ -1,8 +1,12 @@
+#define _POSIX_C_SOURCE 200809L
 #include <string.h>
 #include "command_parser.h"
 #include "command_serializator.h"
 #include <stdio.h>
 #include <stdint.h>
+
+#define PARAMS_INIT_SIZE 32
+#define PARAMS_SCALE_FACTOR 2
 
 #define PARAMETER_SEP ','
 #define BASE_PARAM_COUNT 4
@@ -33,6 +37,8 @@
 #define MAGIC_BYTE 0x01
 
 #define MAX_SIGNATURE_PARAMS 20
+
+#define READ_START 4
 
 #define SIGN_PARAM_SEP ','
 
@@ -125,7 +131,7 @@ static size_t add_parameter_info(unsigned char* header,char* value,enum param pa
     return position - start_position;
 }
 
-static unsigned char* generate_header(command_t* command, uint32_t serial_number, size_t* header_size){
+static unsigned char* generate_header(command_t* command, size_t* header_size){
     /*TODO: Pasar los uint32_t a little endian*/
     *header_size = calculate_header_size(command);
     unsigned char* header = malloc(*header_size);
@@ -140,7 +146,7 @@ static unsigned char* generate_header(command_t* command, uint32_t serial_number
     uint32_t body_size = 0;
     if(command->signature_param_count > 0) body_size = calculate_body_size(command);
     memcpy(&header[POS_BODY_SIZE],&body_size,sizeof(uint32_t));
-    memcpy(&header[POS_SERIAL_NUMBER],&serial_number,sizeof(uint32_t));
+    memcpy(&header[POS_SERIAL_NUMBER],&command->msg_id,sizeof(uint32_t));
 
     uint32_t array_size = (uint32_t)*header_size - OVERHEAD_SIZE;
     memcpy(&header[POS_ARRAY_SIZE],&array_size,sizeof(uint32_t));
@@ -157,7 +163,6 @@ static unsigned char* generate_header(command_t* command, uint32_t serial_number
         for(i = 0;i<command->signature_param_count;i++) signature_params_string[i] = 's';
         position += add_parameter_info(header,&signature_params_string[0],SIGNATURE_PARAMS,position);
     }
-    printf("termine escribiendo %ld\n",position);
     return header;
 }
 
@@ -185,10 +190,32 @@ static unsigned char* generate_body(command_t* command,size_t* body_size){
     return body;
 }
 
-unsigned char* generate_dbus_message(command_t* command, uint32_t serial_number,size_t* msg_size){
+
+static char* decode_string(unsigned  char* message,size_t* position){
+    char* string = strdup((char*)&message[*position]);
+    *position += strlen(string) + 1;
+    return string;
+}
+
+static uint32_t decode_int(unsigned char* message,size_t* position){
+    uint32_t integer;
+    memcpy(&integer,&message[*position],sizeof(uint32_t));
+    
+    *position += sizeof(uint32_t);
+    return integer;
+}
+
+static char decode_byte(unsigned  char* message,size_t* position){
+    char byte; 
+    byte = message[*position];
+    *position += sizeof(char);
+    return byte;
+}
+
+unsigned char* generate_dbus_message(command_t* command,size_t* msg_size){
     size_t body_size = 0;
     size_t header_size = 0;
-    unsigned char* header = generate_header(command,serial_number,&header_size);
+    unsigned char* header = generate_header(command,&header_size);
     *msg_size = header_size;
 
     if(command->signature_param_count == 0){
@@ -206,3 +233,63 @@ unsigned char* generate_dbus_message(command_t* command, uint32_t serial_number,
     free(body);
     return message;
 }
+
+void decode_body(unsigned char* message, command_t* command, size_t position, uint32_t body_size){
+    if(command->signature_param_count < 1) return;
+    uint32_t body_end_position = (uint32_t)position + body_size;
+    char* signature_params = malloc(PARAMS_INIT_SIZE*sizeof(char));
+    size_t params_max_size = PARAMS_INIT_SIZE;
+    size_t params_size = 0;
+    while(position < body_end_position){
+        size_t current_param_size = decode_int(message,&position);
+        char* current_param = decode_string(message,&position);
+        if(params_size + current_param_size > params_max_size){
+            signature_params = realloc(signature_params,PARAMS_SCALE_FACTOR*params_max_size);
+        }
+        memcpy(&signature_params[params_size],&current_param[0],current_param_size);
+        free(current_param);
+        signature_params[params_size+current_param_size] = ',';
+        params_size += current_param_size + 1;
+    }
+    signature_params[params_size - 1] = '\0';
+    command->signature_parameters = signature_params;
+}
+
+void decode_dbus_message(unsigned char* message, command_t* command){
+    size_t position = READ_START;
+    uint32_t body_size = decode_int(message,&position);
+    printf("DEBUG: El largo del cuerpo es %d\n",body_size);
+    command->msg_id = decode_int(message,&position);
+    uint32_t array_size = decode_int(message,&position);
+    
+    uint32_t array_end_position = (uint32_t)position + array_size;
+
+    while(position < array_end_position){
+        char arg_type = decode_byte(message,&position);
+        for(int i = 0;i < 3;i++) position++; //Avanza 3 bytes para saltear bytes que no necesita leer.
+        uint32_t data_length = decode_int(message,&position);
+        char* data = decode_string(message,&position);
+        size_t padding = add_padding(data_length + 1);
+        for(int i = 0;i < padding;i++) position++; //Salteo el padding.
+        switch(arg_type){
+            case ARG_TYPE_DEST:
+                command->destination = data;
+                break;
+            case ARG_TYPE_PATH:
+                command->path = data;
+                break;
+            case ARG_TYPE_METHOD:
+                command->method = data;
+                break;
+            case ARG_TYPE_INTERFACE:
+                command->interface = data;
+                break;
+            case ARG_TYPE_SIGN:
+                command->signature_param_count = strlen(data);
+                free(data);
+                break;
+        }
+        decode_body(message, command, position, body_size);
+    }
+}
+

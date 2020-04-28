@@ -106,6 +106,7 @@ void command_create(command_t* command){
     command->method = NULL;
     command->signature_parameters = NULL;
     command->signature_param_count = 0;
+    command->msg_id = 0;
 }
 
 void command_destroy(command_t* command){

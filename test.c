@@ -13,17 +13,23 @@ void parsear_comando(char* string,void* context){
         fprintf(stderr,"Comando no valido\n");
         return;
     }
-
+    command.msg_id = 8;
     size_t msg_size;
-    unsigned char* message = generate_dbus_message(&command,8,&msg_size);
-
-    printf("===== MENSAJE ====\n");
-    for(size_t i = 0;i<msg_size;i++){
-        printf("%.2x ",message[i]);
-    }
-    printf("\n");
+    unsigned char* message = generate_dbus_message(&command,&msg_size);
+    
+    
+    command_t decoded_command;
+    command_create(&decoded_command);
+    decode_dbus_message(message,&decoded_command);
     free(message);
+
+    printf("Destino: %s, Path: %s, Interfaz: %s, Metodo :%s\n",decoded_command.destination,decoded_command.path,decoded_command.interface,decoded_command.method);
+    
+    if(decoded_command.signature_param_count > 0){
+        printf("Signature parametros: %s\n",decoded_command.signature_parameters);
+    }
     command_destroy(&command);
+    command_destroy(&decoded_command);
 }
 
 int main(void){

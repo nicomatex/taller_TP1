@@ -68,3 +68,25 @@ int send_message(int skt,unsigned char *output_buffer, size_t size) {
       return -1;
    }
 }
+
+int recieve_message(int skt,unsigned char* buffer, size_t size){
+    bool socket_error = false;
+    bool remote_socket_closed = false;
+    size_t bytes_recieved = 0;
+    size_t just_recieved = 0;
+
+    while(bytes_recieved < size && !socket_error && !remote_socket_closed){
+        just_recieved = recv(skt,&buffer[bytes_recieved],size - bytes_recieved,0);
+
+        if(just_recieved == -1){
+            fprintf(stderr,"Error: %s\n",strerror(errno));
+            return -1;
+        } else if(just_recieved == 0){
+            fprintf(stderr,"Conexion cerrada desde el servidor.\n");
+            return -1;
+        }
+        bytes_recieved += just_recieved;
+    }
+
+    return (int)bytes_recieved;
+}

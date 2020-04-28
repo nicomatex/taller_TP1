@@ -26,4 +26,9 @@ bool connect_to_available_server(int* skt, struct addrinfo* results);
 de bytes size. Intenta enviar a traves de skt  size bytes de output_buffer. Devuelve 
 la cantidad de bytes enviados en caso exitoso, y -1 en caso de error.*/
 int send_message(int skt,unsigned char *output_buffer, size_t size);
+
+/*Recibe un socket en estado CONNECTED skt, un buffer cual almacenar un mensaje, y una cantidad
+size de bytes a leer. Intenta leer del servidor. Devuelve la cantidad de bytes recibidos
+en caso exitoso, y -1 en caso de error.*/
+int recieve_message(int skt,unsigned char* buffer,size_t recieve_size);
 #endif

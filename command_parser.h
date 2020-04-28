@@ -2,6 +2,7 @@
 #define COMMAND_PARSER_H
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct command{
     char* destination;
@@ -10,6 +11,7 @@ typedef struct command{
     char* method;
     char* signature_parameters;
     size_t signature_param_count;
+    uint32_t msg_id;
 } command_t;
 
 void command_create(command_t* command);

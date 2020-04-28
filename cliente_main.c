@@ -4,6 +4,11 @@
 #define ARG_PORT 2
 #define ARG_FILE 3
 
+#define MIN_ARGS 3
+#define MAX_ARGS 4
+
+#define RESPONSE_SIZE 3
+
 #define CHAR_NEWLINE '\n'
 
 //Includes generales
@@ -25,8 +30,6 @@
 #include "command_parser.h"
 #include "command_serializator.h"
 
-#define MIN_ARGS 3
-#define MAX_ARGS 4
 
 bool check_parameters(int argc){ /*Chequeo de cantidad de parametros*/
     if(argc < MIN_ARGS){
@@ -39,8 +42,8 @@ bool check_parameters(int argc){ /*Chequeo de cantidad de parametros*/
     return true;
 }
 
-void parse_and_send(char* line,void* client){
-    client = (client_t*)client;
+void parse_and_send(char* line,void* context){
+    client_t* client = (client_t*) context;
     command_t command;
     command_create(&command);
 
@@ -49,13 +52,27 @@ void parse_and_send(char* line,void* client){
         return;
     }
 
+    command.msg_id = client->current_msg_id;
+
     size_t msg_size;
-    unsigned char* message = generate_dbus_message(&command,8,&msg_size);\
+    
+    unsigned char* message = generate_dbus_message(&command,&msg_size);
+    
     printf("DEBUG: message size: %ld\n",msg_size);
 
     size_t bytes_sent = client_send_msg(client,message,msg_size);
     printf("DEBUG: bytes sent: %ld\n",bytes_sent);
 
+    unsigned char response_buffer[RESPONSE_SIZE+1];
+    size_t bytes_recieved = client_recv_msg(client,&response_buffer[0],RESPONSE_SIZE);
+    
+    printf("DEBUG: bytes recieved: %ld.\n",bytes_recieved);
+
+    response_buffer[RESPONSE_SIZE] = '\0';
+    printf("0x%.4x: %s",client->current_msg_id,response_buffer);
+
+    client->current_msg_id += 1;
+    
     free(message);
     command_destroy(&command);
 }
@@ -72,6 +89,8 @@ int main(int argc, char *argv[]){
     client_create(&client,argv[ARG_HOST],argv[ARG_PORT]);
 
     if(client_connect(&client) < 0){
+        client_destroy(&client);
+        if(file != stdin) fclose(file);
         return -1;
     }
 
