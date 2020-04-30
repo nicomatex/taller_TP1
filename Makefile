@@ -40,4 +40,4 @@ server_valgrind: server_build
 	valgrind $(VFLAGS) ./$(SERVER_CLIENT)
 
 clean:
-	rm -f *.o $(EXEC_S)
+	rm -f *.o $(EXEC_TEST) $(EXEC_SERVER) $(EXEC_CLIENT)
