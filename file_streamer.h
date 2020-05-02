@@ -13,7 +13,8 @@ typedef struct file_streamer{
 
 /*Crea un file streamer. Recibe un puntero a file_streamer_t en el cual sera inicializado el streamer,
 un FILE DESCRIPTOR archivo, y una funcion de callback.*/
-void file_streamer_create(file_streamer_t* file_streamer,FILE* archivo,callback_t callback,char separador);
+void file_streamer_create(file_streamer_t* file_streamer,
+                        FILE* archivo,callback_t callback,char separador);
 
 /*Pone a correr el file streamer. El context esta siempre
 disponible para la funcion de callback.

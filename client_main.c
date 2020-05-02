@@ -27,10 +27,10 @@
 
 /*Chequeo de cantidad de parametros*/
 bool check_parameters(int argc){ 
-    if(argc < MIN_ARGS){
+    if ( argc < MIN_ARGS ){
         fprintf(stderr,"Parametros insuficientes.");
         return false;
-    }else if(argc > MAX_ARGS){
+    }else if ( argc > MAX_ARGS ){
         fprintf(stderr,"Demasiados parametros.");
         return false;
     }
@@ -42,7 +42,7 @@ void parse_and_send(char* line,void* context){
     command_t command;
     command_create(&command);
 
-    if(!command_parse(line,&command)){
+    if ( !command_parse(line,&command) ){
         fprintf(stderr,"Comando no valido\n");
         return;
     }
@@ -55,23 +55,24 @@ void parse_and_send(char* line,void* context){
 
     size_t bytes_sent = client_send_msg(client,message,msg_size);
 
-    if(bytes_sent == 0){
+    if ( bytes_sent == 0 ){
         free(message);
         command_destroy(&command);
         fprintf(stderr,"Conexion cerrada desde el servidor");
     }
 
     unsigned char response_buffer[RESPONSE_SIZE+1];
-    size_t bytes_recieved = client_recv_msg(client,&response_buffer[0],RESPONSE_SIZE);
+    size_t bytes_recieved = client_recv_msg(client,
+                            &response_buffer[0],RESPONSE_SIZE);
 
-    if(bytes_recieved == 0){
+    if ( bytes_recieved == 0 ){
         free(message);
         command_destroy(&command);
         fprintf(stderr,"Conexion cerrada desde el servidor");
     }
 
     response_buffer[RESPONSE_SIZE] = '\0';
-    printf("0x%.4x: %s",client->current_msg_id,response_buffer);
+    printf("0x%.8x: %s",client->current_msg_id,response_buffer);
 
     client->current_msg_id += 1;
     
@@ -80,9 +81,9 @@ void parse_and_send(char* line,void* context){
 }
 
 int main(int argc, char *argv[]){
-    if(!check_parameters(argc)) return -1;
+    if ( !check_parameters(argc) ) return -1;
     FILE* file = stdin;
-    if(argc == MAX_ARGS){
+    if ( argc == MAX_ARGS ){
         file = fopen(argv[ARG_FILE],"r");
     }
 
@@ -90,21 +91,21 @@ int main(int argc, char *argv[]){
     client_t client;
     client_create(&client,argv[ARG_HOST],argv[ARG_PORT]);
 
-    if(client_connect(&client) < 0){
+    if ( client_connect(&client) < 0 ){
         client_destroy(&client);
-        if(file != stdin) fclose(file);
+        if ( file != stdin ) fclose(file);
         return -1;
     }
 
     file_streamer_t file_streamer;
     file_streamer_create(&file_streamer,file,parse_and_send,CHAR_NEWLINE);
-    if(file_streamer_run(&file_streamer,&client) < 0){
+    if ( file_streamer_run(&file_streamer,&client) < 0 ){
         fprintf(stderr,"Error de lectura");
     }
     file_streamer_destroy(&file_streamer);
 
     client_disconnect(&client);
     client_destroy(&client);
-    if(file != stdin) fclose(file);
+    if ( file != stdin ) fclose(file);
     return 0;
 }

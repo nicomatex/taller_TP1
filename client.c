@@ -22,12 +22,12 @@ void client_create(client_t* client,char* host,char* port){
 int client_connect(client_t* client){
     struct addrinfo* results;
 
-    if(!get_info_from_dns(client->host,client->port, &results, false)){
+    if ( !get_info_from_dns(client->host,client->port, &results, false) ){
         fprintf(stderr,"No se pudo obtener la informacion del servidor DNS.\n");
         return -1;
     }
 
-    if(!connect_to_available_server(&client->skt,results)){
+    if ( !connect_to_available_server(&client->skt,results) ){
         fprintf(stderr,"No se pudo conectar al servidor.\n");
         free(results);
         return -1;
@@ -50,6 +50,4 @@ void client_disconnect(client_t* client){
     close(client->skt);
 }
 
-void client_destroy(client_t* client){
-    ;
-}
+void client_destroy(client_t* client){}

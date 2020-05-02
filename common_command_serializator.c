@@ -36,7 +36,7 @@
 #define OVERHEAD_SIZE 16
 #define MAGIC_BYTE 0x01
 
-#define MAX_SIGNATURE_PARAMS 20
+#define INITIAL_SIGNATURE_PARAMS 20
 
 #define READ_START 4
 
@@ -45,12 +45,11 @@
 enum param{DEST, PATH, INTERFACE, METHOD, SIGNATURE_PARAMS};
 
 static size_t add_padding(size_t size){
-    if(size%8 == 0) return 0;
+    if ( size%8 == 0 ) return 0;
     return 8 - size%8;
 }
 
 static size_t calculate_header_size(command_t* command){
-
     size_t string_size = 0;
     size_t header_size = BASE_HEADER_SIZE + 8*BASE_PARAM_COUNT;
 
@@ -66,9 +65,10 @@ static size_t calculate_header_size(command_t* command){
     string_size = strlen(command->method) + EOS;
     header_size += string_size + add_padding(string_size);
 
-    if(command->signature_param_count>0){
+    if ( command->signature_param_count>0 ){
         header_size += 8;
-        header_size += (command->signature_param_count + EOS) + add_padding(command->signature_param_count + EOS);
+        header_size += (command->signature_param_count + EOS) +
+                         add_padding(command->signature_param_count + EOS);
     }
 
     header_size += header_size%8;
@@ -78,21 +78,29 @@ static size_t calculate_header_size(command_t* command){
 
 uint32_t calculate_body_size(command_t* command){
     size_t body_size = 0;
-    body_size += sizeof(uint32_t) * command->signature_param_count; //Para los enteros de longitud
-    body_size += command->signature_param_count; //Para los \0 del final de cada cadena
-    body_size += (strlen(command->signature_parameters) - command->signature_param_count + 1); // Para no contar las comas
+
+    //Para los enteros que representan la longitud
+    body_size += sizeof(uint32_t) * command->signature_param_count;
+
+    //Para los \0 del final de cada cadena
+    body_size += command->signature_param_count; 
+
+    //Para no contar las comas
+    body_size += (strlen(command->signature_parameters) - 
+                    command->signature_param_count + 1); 
     return (uint32_t)body_size;
 }
 
 /*Devuelve la cantidad de bytes que escribio en el header*/
-static size_t add_parameter_info(unsigned char* header,char* value,enum param parameter,size_t position){
+static size_t add_parameter_info(unsigned char* header,char* value,
+                                enum param parameter,size_t position){
     size_t start_position = position;
     uint32_t param_size = (uint32_t)strlen(value);
     char type = 0;
     char data_type[2];
     data_type[1] = '\0';
 
-    switch(parameter){
+    switch ( parameter ){
         case PATH:
             type = ARG_TYPE_PATH;
             data_type[0] = 'o';
@@ -131,12 +139,16 @@ static size_t add_parameter_info(unsigned char* header,char* value,enum param pa
     return position - start_position;
 }
 
-static unsigned char* generate_header(command_t* command, size_t* header_size){
+unsigned char* generate_header(command_t* command, size_t* header_size){
     /*TODO: Pasar los uint32_t a little endian*/
     *header_size = calculate_header_size(command);
     unsigned char* header = malloc(*header_size);
+    if ( !header ){
+        fprintf(stderr,"Error reservando memoria para el header.\n");
+        return NULL;
+    }
     memset(header,0,*header_size);
-    if(!header) return NULL;
+    if ( !header ) return NULL;
 
     header[POS_ENDIAN] = ENDIAN;
     header[POS_MSG_TYPE] = MSG_TYPE;
@@ -144,7 +156,10 @@ static unsigned char* generate_header(command_t* command, size_t* header_size){
     header[POS_PROTOCOL_VER] = PROTOCOL_VER;
 
     uint32_t body_size = 0;
-    if(command->signature_param_count > 0) body_size = calculate_body_size(command);
+
+    if ( command->signature_param_count > 0 ) 
+        body_size = calculate_body_size(command);
+
     memcpy(&header[POS_BODY_SIZE],&body_size,sizeof(uint32_t));
     memcpy(&header[POS_SERIAL_NUMBER],&command->msg_id,sizeof(uint32_t));
 
@@ -152,38 +167,60 @@ static unsigned char* generate_header(command_t* command, size_t* header_size){
     memcpy(&header[POS_ARRAY_SIZE],&array_size,sizeof(uint32_t));
 
     size_t position = POS_ARRAY_START;
-    position += add_parameter_info(header,command->destination,DEST,position);
-    position += add_parameter_info(header,command->path,PATH,position);
-    position += add_parameter_info(header,command->interface,INTERFACE,position);
-    position += add_parameter_info(header,command->method,METHOD,position);
+    position += add_parameter_info(header,
+                command->destination,DEST,position);
+    position += add_parameter_info(header,
+                command->path,PATH,position);
+    position += add_parameter_info(header,
+                command->interface,INTERFACE,position);
+    position += add_parameter_info(header,
+                command->method,METHOD,position);
 
-    if(command->signature_param_count > 0){
-        char signature_params_string[MAX_SIGNATURE_PARAMS] = "";
+    if ( command->signature_param_count > 0 ){
+        char* signature_params_string = malloc(command->signature_param_count 
+                                        + 1); //Para el \0
+        if ( !signature_params_string ){
+            fprintf(stderr,"Error de memoria\n");
+            free(header);
+            return NULL;
+        }
         size_t i = 0;
-        for(i = 0;i<command->signature_param_count;i++) signature_params_string[i] = 's';
-        position += add_parameter_info(header,&signature_params_string[0],SIGNATURE_PARAMS,position);
+
+        for ( i = 0; i<command->signature_param_count; i++ ) 
+            signature_params_string[i] = 's';
+
+        signature_params_string[i] = '\0';
+        position += add_parameter_info(header,&signature_params_string[0],
+                    SIGNATURE_PARAMS,position);
+        free(signature_params_string);
     }
     return header;
 }
 
-static unsigned char* generate_body(command_t* command,size_t* body_size){
+unsigned char* generate_body(command_t* command,size_t* body_size){
     *body_size = calculate_body_size(command);
     unsigned char* body = malloc(*body_size);
+    if ( !body ){
+        fprintf(stderr,"Error reservando memoria para el cuerpo.\b");
+        return NULL;
+    }
     size_t params_index = 0;
     size_t body_index = sizeof(uint32_t);
 
     uint32_t current_param_lenght = 0;
-    while(command->signature_parameters[params_index] != '\0'){
+    while ( command->signature_parameters[params_index] != '\0' ){
         body[body_index++] = command->signature_parameters[params_index++];
         current_param_lenght++;
-
         char current_char = command->signature_parameters[params_index];
-        if(current_char == SIGN_PARAM_SEP || current_char == '\0'){
-            memcpy(&body[body_index-current_param_lenght-sizeof(uint32_t)],&current_param_lenght,sizeof(uint32_t));
+
+        if ( current_char == SIGN_PARAM_SEP || current_char == '\0' ){
+            memcpy(&body[body_index-current_param_lenght-sizeof(uint32_t)],
+            &current_param_lenght,sizeof(uint32_t));
+
             current_param_lenght = 0;
             body[body_index++] = '\0';
             body_index += sizeof(uint32_t);
-            if(current_char == '\0') break;
+            if ( current_char == '\0' ) break;
             params_index++;
         }
     }
@@ -192,9 +229,9 @@ static unsigned char* generate_body(command_t* command,size_t* body_size){
 
 
 static char* decode_string(unsigned  char* message,size_t* position){
-    char* string = strdup((char*)&message[*position]);
-    *position += strlen(string) + 1;
-    return string;
+    char* str = strdup((char*)&message[*position]);
+    *position += strlen(str) + 1;
+    return str;
 }
 
 static uint32_t decode_int(unsigned char* message,size_t* position){
@@ -216,17 +253,29 @@ unsigned char* generate_dbus_message(command_t* command,size_t* msg_size){
     size_t body_size = 0;
     size_t header_size = 0;
     unsigned char* header = generate_header(command,&header_size);
+    if ( !header ){
+        return NULL;
+    }
     *msg_size = header_size;
 
-    if(command->signature_param_count == 0){
+    if ( command->signature_param_count == 0 ){
         return header;
     }
     unsigned char* body = generate_body(command,&body_size);
+    if ( !body ){
+        free(header);
+        return NULL;
+    }
     *msg_size+= body_size;
     size_t message_size = body_size + header_size;
 
     unsigned char* message = malloc(message_size*sizeof(char));
-    
+    if ( !message ){
+        free(header);
+        free(body);
+        fprintf(stderr,"Error reservando memoria para el mensaje.\n");
+        return NULL;
+    }
     memcpy(&message[0],&header[0],header_size);
     memcpy(&message[header_size],&body[0],body_size);
     free(header);
@@ -234,19 +283,35 @@ unsigned char* generate_dbus_message(command_t* command,size_t* msg_size){
     return message;
 }
 
-void decode_body(unsigned char* message, command_t* command, size_t position, uint32_t body_size){
-    if(command->signature_param_count < 1) return;
+void decode_body(unsigned char* message, command_t* command,
+     size_t position, uint32_t body_size){
+    if ( command->signature_param_count < 1 ) return;
     uint32_t body_end_position = (uint32_t)position + body_size;
     char* signature_params = malloc(PARAMS_INIT_SIZE*sizeof(char));
     size_t params_max_size = PARAMS_INIT_SIZE;
     size_t params_size = 0;
-    while(position < body_end_position){
+    while ( position < body_end_position ){
         size_t current_param_size = decode_int(message,&position);
         char* current_param = decode_string(message,&position);
-        if(params_size + current_param_size > params_max_size){
-            signature_params = realloc(signature_params,PARAMS_SCALE_FACTOR*params_max_size);
+
+        if ( params_size + current_param_size > params_max_size ){
+            char* new_signature_params = realloc(signature_params,
+                                (params_size + current_param_size)*
+                                PARAMS_SCALE_FACTOR);
+
+            if ( !new_signature_params ){
+                free(signature_params);
+                return;
+            }else{
+                signature_params = new_signature_params;
+            }
+            params_max_size = (params_size + current_param_size)*
+                                PARAMS_SCALE_FACTOR;
         }
-        memcpy(&signature_params[params_size],&current_param[0],current_param_size);
+        
+        memcpy(&signature_params[params_size],
+        &current_param[0],current_param_size);
+
         free(current_param);
         signature_params[params_size+current_param_size] = ',';
         params_size += current_param_size + 1;
@@ -263,14 +328,17 @@ void decode_dbus_message(unsigned char* message, command_t* command){
     
     uint32_t array_end_position = (uint32_t)position + array_size;
 
-    while(position < array_end_position){
+    while ( position < array_end_position ){
         char arg_type = decode_byte(message,&position);
-        for(int i = 0;i < 3;i++) position++; //Avanza 3 bytes para saltear bytes que no necesita leer.
+
+        //Avanza 3 bytes para saltear bytes que no necesita leer.
+        for ( int i = 0; i < 3; i++ ) position++; 
+
         uint32_t data_length = decode_int(message,&position);
         char* data = decode_string(message,&position);
         size_t padding = add_padding(data_length + 1);
-        for(int i = 0;i < padding;i++) position++; //Salteo el padding.
-        switch(arg_type){
+        for ( int i = 0; i < padding; i++ ) position++; //Salteo el padding.
+        switch ( arg_type ){
             case ARG_TYPE_DEST:
                 command->destination = data;
                 break;

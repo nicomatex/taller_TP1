@@ -22,12 +22,12 @@ void server_create(server_t* server,char* port){
 int server_connect(server_t* server){
     struct addrinfo* results;
 
-    if(!get_info_from_dns(NULL,server->port, &results, true)){
+    if ( !get_info_from_dns(NULL,server->port, &results, true) ){
         fprintf(stderr,"No se pudo obtener la informacion del servidor DNS.\n");
         return -1;
     }
 
-    if(!start_listening(&server->skt,results)){
+    if ( !start_listening(&server->skt,results) ){
         fprintf(stderr,"No se pudo iniciar el servidor.\n");
         free(results);
         return -1;
@@ -39,7 +39,7 @@ int server_connect(server_t* server){
 
 int server_accept_conection(server_t* server){
     server->client_skt = accept(server->skt,NULL, NULL);
-    if(server->client_skt == - 1){
+    if ( server->client_skt == - 1 ){
         fprintf(stderr,"Error: %s.\n",strerror(errno));
         return -1;
     }
@@ -59,6 +59,4 @@ void server_disconnect(server_t* server){
     close(server->skt);
 }
 
-void server_destroy(server_t* server){
-    ;
-}
+void server_destroy(server_t* server){}

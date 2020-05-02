@@ -14,7 +14,8 @@ a dicho host en dicho puerto y lo almacena en result. Si se trata de un server, 
 debe aclarar is_server = true. 
 Devuelve true si la obtencion de datos fue exitosa, false en caso
 contrario.*/
-bool get_info_from_dns(char* host, char* port, struct addrinfo** result, bool is_server);
+bool get_info_from_dns(char* host, char* port, 
+                        struct addrinfo** result, bool is_server);
 
 /*Recibe un puntero a un socket, y un struct addrinfo con informacion DNS. Intenta 
 establecer una conexion con el servidor. De ser exitoso, se establece el socket pasado
