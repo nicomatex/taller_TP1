@@ -30,9 +30,20 @@
 
 #define PARAM_SEPARATOR ","
 
+static bool is_bigendian(){
+    int n = 1;
+    /*Desreferencia el byte menos significativo
+    y se fija si es 1. Si lo es, entonces el sistema
+    es little endian.*/
+    return !(*(char*)&n == 1);
+}
+
 uint32_t decode_int(unsigned char* message,size_t position){
     uint32_t integer;
     memcpy(&integer,&message[position],sizeof(uint32_t));
+    if ( is_bigendian() ){
+        integer = __builtin_bswap32(integer);
+    }
     return integer;
 }
 

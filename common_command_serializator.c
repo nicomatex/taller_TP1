@@ -260,7 +260,9 @@ static char* decode_string(unsigned  char* message,size_t* position){
 static uint32_t decode_int(unsigned char* message,size_t* position){
     uint32_t integer;
     memcpy(&integer,&message[*position],sizeof(uint32_t));
-    
+    if ( is_bigendian() ){
+        integer = __builtin_bswap32(integer);
+    }
     *position += sizeof(uint32_t);
     return integer;
 }
