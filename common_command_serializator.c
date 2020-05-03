@@ -44,6 +44,14 @@
 
 enum param{DEST, PATH, INTERFACE, METHOD, SIGNATURE_PARAMS};
 
+static bool is_bigendian(){
+    int n = 1;
+    /*Desreferencia el byte menos significativo
+    y se fija si es 1. Si lo es, entonces el sistema
+    es little endian.*/
+    return !(*(char*)&n == 1);
+}
+
 static size_t add_padding(size_t size){
     if ( size%8 == 0 ) return 0;
     return 8 - size%8;
@@ -123,11 +131,13 @@ static size_t add_parameter_info(unsigned char* header,char* value,
             break;
     }
     
+    uint32_t encoded_param_size = param_size;
+    if ( is_bigendian() ) encoded_param_size = __builtin_bswap32(param_size);
     header[position++] = type;
     header[position++] = MAGIC_BYTE;
     memcpy(&header[position],&data_type[0],2);
     position += 2;
-    memcpy(&header[position],&param_size,sizeof(uint32_t));
+    memcpy(&header[position],&encoded_param_size,sizeof(uint32_t));
     position += sizeof(uint32_t);
     memcpy(&header[position],value,param_size);
     position += param_size;
@@ -160,10 +170,18 @@ unsigned char* generate_header(command_t* command, size_t* header_size){
     if ( command->signature_param_count > 0 ) 
         body_size = calculate_body_size(command);
 
+    uint32_t encoded_msg_id = command->msg_id;
+    if ( is_bigendian() ){
+        body_size = __builtin_bswap32(body_size);
+        encoded_msg_id = __builtin_bswap32(command->msg_id);
+    } 
+
     memcpy(&header[POS_BODY_SIZE],&body_size,sizeof(uint32_t));
-    memcpy(&header[POS_SERIAL_NUMBER],&command->msg_id,sizeof(uint32_t));
+    memcpy(&header[POS_SERIAL_NUMBER],&encoded_msg_id,sizeof(uint32_t));
 
     uint32_t array_size = (uint32_t)*header_size - OVERHEAD_SIZE;
+    if ( is_bigendian() ) array_size = __builtin_bswap32(array_size);
+
     memcpy(&header[POS_ARRAY_SIZE],&array_size,sizeof(uint32_t));
 
     size_t position = POS_ARRAY_START;
@@ -214,8 +232,13 @@ unsigned char* generate_body(command_t* command,size_t* body_size){
         char current_char = command->signature_parameters[params_index];
 
         if ( current_char == SIGN_PARAM_SEP || current_char == '\0' ){
+            uint32_t encoded_current_param_length = current_param_lenght;
+            if ( is_bigendian() ){
+                encoded_current_param_length = 
+                __builtin_bswap32(current_param_lenght);
+            }
             memcpy(&body[body_index-current_param_lenght-sizeof(uint32_t)],
-            &current_param_lenght,sizeof(uint32_t));
+            &encoded_current_param_length,sizeof(uint32_t));
 
             current_param_lenght = 0;
             body[body_index++] = '\0';

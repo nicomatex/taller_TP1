@@ -1,3 +1,0 @@
-nico.server /nico/server com.nico.tp1 cocinarpizza()
-taller.server /tp1/server com.taller.tp1 saludar(juanin,juan,harry)
-nico.server /nico/server com.nico.tp1 cocinarpizza(tengo,hambre)
