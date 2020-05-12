@@ -32,7 +32,14 @@ static char* get_token(char* str, char sep, char** saveptr){
     }
     size_t i = 0;
     while ( (*saveptr)[i] != sep && (*saveptr)[i] != '\0' ) i++;
-    if ( (*saveptr)[i] == '\0' ) return NULL;
+    if ( (*saveptr)[i] == '\0' ){
+        if(!str){
+            return NULL;
+        }else{
+            *saveptr += i;
+            return str;
+        }
+    } 
     
     char* return_address = *saveptr;
     (*saveptr)[i] = '\0';
