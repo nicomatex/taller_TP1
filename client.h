@@ -1,5 +1,6 @@
-#ifndef CLIENT_H
-#define CLIENT_H
+#ifndef __CLIENT_H
+#define __CLIENT_H
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -9,7 +10,7 @@ typedef struct client{
     char* host;
     char* port;
     uint32_t current_msg_id;
-}client_t;
+} client_t;
 
 /*Inicializa el cliente pasado por parametro, con el host y el port indicados.*/
 void client_create(client_t* client,char* host,char* port);

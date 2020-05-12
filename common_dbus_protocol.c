@@ -1,31 +1,19 @@
-#define _POSIX_C_SOURCE 200809L
+#include "common_dbus_protocol.h"
+
 #include <string.h>
-#include "command_parser.h"
-#include "command_serializator.h"
 #include <stdio.h>
-#include <stdint.h>
+#include <stdbool.h>
 
 #define PARAMS_INIT_SIZE 32
 #define PARAMS_SCALE_FACTOR 2
 
-#define PARAMETER_SEP ','
 #define BASE_PARAM_COUNT 4
 #define EOS 1
-#define BASE_HEADER_SIZE 16
 
 #define ENDIAN 'l'
 #define MSG_TYPE 0x01
 #define FLAGS 0x00
 #define PROTOCOL_VER 0X01
-
-#define POS_ENDIAN 0
-#define POS_MSG_TYPE 1
-#define POS_FLAGS 2
-#define POS_PROTOCOL_VER 3
-#define POS_BODY_SIZE 4
-#define POS_SERIAL_NUMBER 8
-#define POS_ARRAY_SIZE 12
-#define POS_ARRAY_START 16
 
 #define ARG_TYPE_PATH 0x01
 #define ARG_TYPE_DEST 0x06
@@ -40,9 +28,25 @@
 
 #define READ_START 4
 
-#define SIGN_PARAM_SEP ','
-
 enum param{DEST, PATH, INTERFACE, METHOD, SIGNATURE_PARAMS};
+
+void command_create(command_t* command){
+    command->destination = NULL;
+    command->path = NULL;
+    command->interface = NULL;
+    command->method = NULL;
+    command->signature_parameters = NULL;
+    command->signature_param_count = 0;
+    command->msg_id = 0;
+}
+
+void command_destroy(command_t* command){
+    if ( command->destination ) free(command->destination);
+    if ( command->interface ) free(command->interface);
+    if ( command->method ) free(command->method);
+    if ( command->signature_parameters ) free(command->signature_parameters);
+    if ( command->path ) free(command->path);
+}
 
 static bool is_bigendian(){
     int n = 1;
@@ -250,9 +254,10 @@ unsigned char* generate_body(command_t* command,size_t* body_size){
     return body;
 }
 
-
 static char* decode_string(unsigned  char* message,size_t* position){
-    char* str = strdup((char*)&message[*position]);
+    size_t length = strlen((char*)&message[*position]);
+    char* str = malloc(length+1);
+    memcpy(str,&message[*position],length+1);
     *position += strlen(str) + 1;
     return str;
 }

@@ -1,4 +1,5 @@
-#include "network_util.h"
+#define _POSIX_C_SOURCE 200112L
+#include "common_network_util.h"
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>

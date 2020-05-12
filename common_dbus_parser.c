@@ -1,11 +1,8 @@
+#include "common_dbus_parser.h"
+
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
-
-#include "command_parser.h"
-
-#define FORMAT "%s %s %s %[^(](%[^)\n])"
-#define MIN_PARAMS 4
 
 #define PARAM_SEP ' '
 #define METHOD_PARAM_SEP '('
@@ -151,20 +148,3 @@ bool command_parse(char* line, command_t* command){
     return true;
 }
 
-void command_create(command_t* command){
-    command->destination = NULL;
-    command->path = NULL;
-    command->interface = NULL;
-    command->method = NULL;
-    command->signature_parameters = NULL;
-    command->signature_param_count = 0;
-    command->msg_id = 0;
-}
-
-void command_destroy(command_t* command){
-    if ( command->destination ) free(command->destination);
-    if ( command->interface ) free(command->interface);
-    if ( command->method ) free(command->method);
-    if ( command->signature_parameters ) free(command->signature_parameters);
-    if ( command->path ) free(command->path);
-}
