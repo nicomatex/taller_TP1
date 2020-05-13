@@ -1,17 +1,10 @@
-#define _POSIX_C_SOURCE 200809L
+#include "server.h"
+#include "common_network_util.h"
+
 #include <stdio.h>
-#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
-#include <stdlib.h>
 
-#include "server.h"
-#include "network_util.h"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
 
 void server_create(server_t* server,char* port){
     server->port = port;

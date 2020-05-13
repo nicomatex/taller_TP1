@@ -1,12 +1,13 @@
 #ifndef NETWORK_UTIL_H
 #define NETWORK_UTIL_H
-#define _POSIX_C_SOURCE 200809L
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <stdbool.h>
+
+struct addrinfo;
 
 /*Recibe una direccion ip o dominio de un host, un puerto, un struct addrinfo en el cual guardar 
 resultados, y un booleano is_server, y obtiene la informacion necesaria para la conexion
@@ -36,4 +37,11 @@ int recieve_message(int skt,unsigned char* buffer,size_t recieve_size);
 /*Recibe un socket y un struct addrinfo con informacion DNS. Establece el socket en modo
 pasivo, escuchando en el puerto indicado en results.*/
 bool start_listening(int* skt,struct addrinfo* results);
+
+/*Devuelve true si el equipo es big endian, false en caso contrario. */
+bool is_bigendian();
+
+/* Recibe un puntero a array de bytes y una posicion, y decodifica el 
+entero no signado de 4 bytes en esa posicion.*/
+uint32_t decode_int(unsigned char* message,size_t position);
 #endif

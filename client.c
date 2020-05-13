@@ -1,16 +1,7 @@
-#define _POSIX_C_SOURCE 200809L
+#include "client.h"
+#include "common_network_util.h"
 
 #include <stdio.h>
-#include <stdlib.h>
-
-//Includes de Sockets
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
-
-#include "client.h"
-#include "network_util.h"
 
 void client_create(client_t* client,char* host,char* port){
     client->host = host;

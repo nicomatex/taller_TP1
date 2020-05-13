@@ -1,6 +1,8 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include <stdlib.h>
+
 typedef struct server{
     int skt;
     int client_skt;
