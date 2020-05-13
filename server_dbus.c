@@ -27,24 +27,21 @@ static uint32_t decode_int(unsigned char* message,size_t position){
 }
 
 static char* get_token(char* str, char sep, char** saveptr){
-    if ( str ){
+    if ( str )
         *saveptr = str;
+    else if ( !(*saveptr) )
+        return NULL;
+
+    str = (*saveptr) + strspn(*saveptr,&sep);
+    (*saveptr) = str + strcspn(str,&sep);
+
+    if ( *saveptr == str ){
+        *saveptr = NULL;
+        return NULL;
     }
-    size_t i = 0;
-    while ( (*saveptr)[i] != sep && (*saveptr)[i] != '\0' ) i++;
-    if ( (*saveptr)[i] == '\0' ){
-        if(!str){
-            return NULL;
-        }else{
-            *saveptr += i;
-            return str;
-        }
-    } 
-    
-    char* return_address = *saveptr;
-    (*saveptr)[i] = '\0';
-    *saveptr += i+1;
-    return return_address;
+
+    *saveptr = *(*saveptr) ? *(*saveptr) = 0,(*saveptr)+1 : NULL;
+    return str;
 }
 
 static void print_command(command_t* command){
